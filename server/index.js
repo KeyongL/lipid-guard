@@ -33,8 +33,8 @@ app.use(express.json());
 // Serve static files from the public directory for development
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Test endpoint
-app.get('/', (req, res) => {
+// Health check endpoint
+app.get('/api/health', (req, res) => {
   res.json({ message: 'LipidGuard API is running' });
 });
 
@@ -165,16 +165,30 @@ app.delete('/api/logs/:id', async (req, res) => {
   }
 });
 
-// Production static file serving
+// Serve static files
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files from the dist directory
-  app.use(express.static(path.join(__dirname, '../dist')));
-  
-  // Handle React routing - return index.html for all non-API routes
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, '../dist/index.html'));
-  });
+  // In production, serve dist directory from the project root
+  const distPath = path.join(__dirname, '../dist');
+  console.log(`Serving static files from: ${distPath}`);
+  app.use(express.static(distPath));
+} else {
+  // In development, serve public directory from the project root
+  const publicPath = path.join(__dirname, '../public');
+  console.log(`Serving static files from: ${publicPath}`);
+  app.use(express.static(publicPath));
 }
+
+// Catch-all route for React Router (must be after all API routes)
+app.get('*', (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    // In production, serve index.html from dist
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    res.sendFile(indexPath);
+  } else {
+    // In development, let Vite handle the routing
+    res.status(404).send('Not Found');
+  }
+});
 
 // Start server
 app.listen(PORT, '0.0.0.0', () => {
