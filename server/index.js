@@ -14,18 +14,20 @@ const PORT = process.env.PORT || 3000;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Database connection - prioritize DATABASE_URL for Render
-const pool = new Pool(process.env.DATABASE_URL ? {
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false
-  }
-} : {
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  host: process.env.DB_HOST,
-  port: process.env.DB_PORT,
-  database: process.env.DB_NAME
+// Database connection configuration
+const isProduction = process.env.NODE_ENV === 'production';
+const connectionString = process.env.DATABASE_URL;
+
+// Create connection pool with SSL config for production
+const pool = new Pool({
+  connectionString: connectionString,
+  ssl: isProduction ? { rejectUnauthorized: false } : undefined,
+  // Local environment fallback
+  user: !connectionString ? process.env.DB_USER : undefined,
+  host: !connectionString ? process.env.DB_HOST : undefined,
+  password: !connectionString ? process.env.DB_PASSWORD : undefined,
+  port: !connectionString ? process.env.DB_PORT : undefined,
+  database: !connectionString ? process.env.DB_NAME : undefined
 });
 
 app.use(cors());
